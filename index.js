@@ -143,15 +143,26 @@ const phpDto = (config = null) => {
                 'Object': 'null',
                 'null': 'null',
                 'any': 'null',
+            }, types = {
+                'Number': 'float',
+                'Array': 'array',
+                'String': "string",
+                'Boolean': 'boolean',
+                'Object': 'Object',
+                'null': 'mixed',
+                'any': 'mixed',
             },
             internalObjects = [];
 
         for (var i in obj) {
             var type = obj[i] === null ? 'any' : obj[i].constructor.name,
                 paramName = camelCase ? snakeToCamel(i) : i;
+                            
+            let typeParam = types[type] || type.toLowerCase();
+
             props.push(`
                 /**
-                 * @var ${type} ${ paramName }
+                 * @var ${typeParam} $${ paramName }
                  */ 
                 public $${ paramName } = ${(defaults[type] || defaults['null'])};`);
 
@@ -181,43 +192,42 @@ const phpDto = (config = null) => {
             if (!generateGettersAndSetters) {
                 continue;
             }
-            
-            let typeParam = ['Object', 'null', 'any'].includes(type) ? '' : type.toLowerCase();
-            typeParam = typeParam == 'number' ? 'float' : typeParam;
         
             gettersAndSetters.push(`/**
-                 * Setter for attribute ${ paramName }
-                 * @param ${ type } value
-                 * @return this
+                 * Setter for attribute $${ paramName }
+                 * @param ${ typeParam } $value
+                 * @return $this
                  */
-                public function set${ paramName.firstToUpperCase() }(${ typeParam } $value) {
+                public function set${ paramName.firstToUpperCase() }($value) 
+                {
                     $this->${ paramName } = $value;
                     return $this;
                 }
 
                 /**
-                 * Getter for attribute ${ paramName }
-                 * @return {${ type }}
+                 * Getter for attribute $${ paramName }
+                 * @return ${ type }
                  */
-                public function get${ paramName.firstToUpperCase() }() {
+                public function get${ paramName.firstToUpperCase() }() 
+                {
                     return $this->${paramName};
                 }`);
 
             if (type === 'Array') {
                 gettersAndSetters.push(`/**
-                    * Add on attribute ${paramName}
+                    * Add on attribute $${paramName}
                     * @param ${ type } value
-                    * @return this
+                    * @return $this
                     */
-                    public function add${ paramName.firstToUpperCase() }($value) {
+                    public function add${ paramName.firstToUpperCase() }($value) 
+                    {
                         array_push($this->${ paramName }, $value);
                         return $this;
                     }`);
             }
         }
 
-        var ret = `
-            <?php
+        var ret = `<?php
             namespace ${config.namespace};    
 
             class ${ name.firstToUpperCase() }Dto {
